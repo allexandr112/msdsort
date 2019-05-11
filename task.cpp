@@ -87,6 +87,57 @@ void heapify(std::uint32_t * arr, int n)
     }
 }
 
+template <typename T>
+T getDigit(const T &value_r, const unsigned int &digit_r)
+{
+    return (value_r & (0xFF << ((sizeof(T) - digit_r - 1) * __CHAR_BIT__))) >> ( (sizeof(T) - digit_r - 1) * __CHAR_BIT__ );
+}
+
+void radixSort(std::uint32_t * sourceArray, std::vector< unsigned int> & aux,  long left_r, long right_r, const unsigned int digit_r)
+{
+    typedef unsigned int elem_t;
+
+    const unsigned int num_of_digits = sizeof(elem_t);
+    const unsigned int max_value = 255;
+
+    std::vector< unsigned int > count(max_value + 3);
+
+    if (digit_r > num_of_digits - 1 || left_r > right_r)
+    {
+        return;
+    }
+    for (unsigned int j = 0; j < max_value + 1; j++)
+    {
+        count[j] = 0;
+    }
+    for (unsigned int i = left_r; i <= right_r; i++)
+    {
+        unsigned int j = getDigit(sourceArray[i], digit_r);
+        count[j + 2]++;
+    }
+    for (unsigned int r = 0; r <= max_value + 1; r++)
+    {
+        count[r+1] += count[r];
+    }
+    for (unsigned int i = left_r; i <= right_r; i++)
+    {
+        unsigned int j = getDigit(sourceArray[i], digit_r);
+        aux[count[j+1]++] = sourceArray[i];
+    }
+    for (unsigned int i = left_r; i <= right_r; i++)
+    {
+        sourceArray[i] = aux[i - left_r];
+    }
+
+    // #pragma omp parallel shared(sourceArray, aux)
+    {
+    for (unsigned int r = 0; r < max_value; r++)
+    {
+        radixSort(sourceArray, aux, left_r + count[r], left_r + count[r+1] - 1, digit_r + 1);
+    }
+    }
+}
+
 void sort(
     std::uint32_t * data,
     int local_size,
@@ -94,7 +145,11 @@ void sort(
 )
 {
     // Build heap (rearrange array)
-    heapify(data, local_size);
+    // heapify(data, local_size);
+
+    std::vector< std::uint32_t > aux(2 * local_size);
+    std::fill(aux.begin(), aux.end(), 0);
+    radixSort(data, aux, 0, local_size-1, 0);
 
     static const std::uint32_t sorted_marker = ~0u;
 
