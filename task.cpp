@@ -220,7 +220,10 @@ void sort(
                 // Decrease the number of tree elements
                 --num_tree_elements;
                 // And heapify remaining values inside the node
-                heapify(data, num_tree_elements);
+                // heapify(data, num_tree_elements);
+
+                std::fill(aux.begin(), aux.end(), 0);
+                radixSort(data, aux, 0, num_tree_elements - 1, 0);
             }
 
             // 4. Swap recv_data and data[0] on max_root_node_id
@@ -228,7 +231,10 @@ void sort(
             {
                 std::swap(recv_data, data[0]);
                 // And heapify
-                heapify(data, num_tree_elements);
+                // heapify(data, num_tree_elements);
+
+                std::fill(aux.begin(), aux.end(), 0);
+                radixSort(data, aux, 0, num_tree_elements - 1, 0);
             }
         }
         else if (GetNodeId() == max_root_node_id)
@@ -238,7 +244,10 @@ void sort(
             // Decrease the number of tree elements
             --num_tree_elements;
             // And heapify remaining values inside the node
-            heapify(data, num_tree_elements);
+            // heapify(data, num_tree_elements);
+
+            std::fill(aux.begin(), aux.end(), 0);
+            radixSort(data, aux, 0, num_tree_elements-1, 0);
         }
 
     }
@@ -252,7 +261,7 @@ auto GenerateData(std::size_t data_size)
     srand(GetNodeId());
     std::generate_n(data.get(), data_size, []()
     {
-        return rand();
+        return rand() % 100;
     });
 
     return std::move(data);
