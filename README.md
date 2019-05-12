@@ -1,7 +1,7 @@
 # MPI MSD Sort
 
 ## How to run on Ubuntu
-1. sudo apt update && sudo apt install mpich
+1. sudo apt update && sudo apt install mpich && sudo apt install libomp-dev
 2. make
 
 ## Possible problems
