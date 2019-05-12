@@ -226,8 +226,8 @@ void sort(
                 heapify(data, num_tree_elements);
 
                 // std::fill(aux.begin(), aux.end(), 0);
-                // radixSort(data, aux, 0, num_tree_elements, 0);
-                // reverse(data, num_tree_elements);
+                // radixSort(data, aux, 0, num_tree_elements-1, 0);
+                // std::reverse(&data[0], &data[num_tree_elements]);
             }
 
             // 4. Swap recv_data and data[0] on max_root_node_id
@@ -238,8 +238,8 @@ void sort(
                 heapify(data, num_tree_elements);
 
                 // std::fill(aux.begin(), aux.end(), 0);
-                // radixSort(data, aux, 0, num_tree_elements, 0);
-                // reverse(data, num_tree_elements);
+                // radixSort(data, aux, 0, num_tree_elements-1, 0);
+                // std::reverse(&data[0], &data[num_tree_elements]);
             }
         }
         else if (GetNodeId() == max_root_node_id)
@@ -252,8 +252,8 @@ void sort(
             heapify(data, num_tree_elements);
 
             // std::fill(aux.begin(), aux.end(), 0);
-            // radixSort(data, aux, 0, num_tree_elements, 0);
-            // reverse(data, num_tree_elements - 1);
+            // radixSort(data, aux, 0, num_tree_elements-1, 0);
+            // std::reverse(&data[0], &data[num_tree_elements]);
         }
 
     }
