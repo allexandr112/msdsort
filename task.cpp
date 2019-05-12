@@ -98,15 +98,15 @@ void radixSort(std::uint32_t * sourceArray, std::vector< unsigned int> & aux,  l
     typedef unsigned int elem_t;
 
     const unsigned int num_of_digits = sizeof(elem_t);
-    const unsigned int max_value = 255;
+    const unsigned int max_value = 256;
 
-    std::vector< unsigned int > count(max_value + 3);
+    std::vector< unsigned int > count(max_value + 1);
 
     if (digit_r > num_of_digits - 1 || left_r > right_r)
     {
         return;
     }
-    for (unsigned int j = 0; j < max_value + 1; j++)
+    for (unsigned int j = 0; j < max_value; j++)
     {
         count[j] = 0;
     }
@@ -115,7 +115,7 @@ void radixSort(std::uint32_t * sourceArray, std::vector< unsigned int> & aux,  l
         unsigned int j = getDigit(sourceArray[i], digit_r);
         count[j + 2]++;
     }
-    for (unsigned int r = 0; r <= max_value + 1; r++)
+    for (unsigned int r = 0; r <= max_value-1; r++)
     {
         count[r+1] += count[r];
     }
@@ -147,9 +147,12 @@ void sort(
     // Build heap (rearrange array)
     // heapify(data, local_size);
 
-    std::vector< std::uint32_t > aux(2 * local_size);
+    std::vector< std::uint32_t > aux(2*local_size);
     std::fill(aux.begin(), aux.end(), 0);
     radixSort(data, aux, 0, local_size-1, 0);
+    std::reverse(&data[0], &data[local_size]);
+
+    Barrier();
 
     static const std::uint32_t sorted_marker = ~0u;
 
@@ -220,10 +223,11 @@ void sort(
                 // Decrease the number of tree elements
                 --num_tree_elements;
                 // And heapify remaining values inside the node
-                // heapify(data, num_tree_elements);
+                heapify(data, num_tree_elements);
 
-                std::fill(aux.begin(), aux.end(), 0);
-                radixSort(data, aux, 0, num_tree_elements - 1, 0);
+                // std::fill(aux.begin(), aux.end(), 0);
+                // radixSort(data, aux, 0, num_tree_elements, 0);
+                // reverse(data, num_tree_elements);
             }
 
             // 4. Swap recv_data and data[0] on max_root_node_id
@@ -231,10 +235,11 @@ void sort(
             {
                 std::swap(recv_data, data[0]);
                 // And heapify
-                // heapify(data, num_tree_elements);
+                heapify(data, num_tree_elements);
 
-                std::fill(aux.begin(), aux.end(), 0);
-                radixSort(data, aux, 0, num_tree_elements - 1, 0);
+                // std::fill(aux.begin(), aux.end(), 0);
+                // radixSort(data, aux, 0, num_tree_elements, 0);
+                // reverse(data, num_tree_elements);
             }
         }
         else if (GetNodeId() == max_root_node_id)
@@ -244,10 +249,11 @@ void sort(
             // Decrease the number of tree elements
             --num_tree_elements;
             // And heapify remaining values inside the node
-            // heapify(data, num_tree_elements);
+            heapify(data, num_tree_elements);
 
-            std::fill(aux.begin(), aux.end(), 0);
-            radixSort(data, aux, 0, num_tree_elements-1, 0);
+            // std::fill(aux.begin(), aux.end(), 0);
+            // radixSort(data, aux, 0, num_tree_elements, 0);
+            // reverse(data, num_tree_elements - 1);
         }
 
     }
@@ -261,7 +267,7 @@ auto GenerateData(std::size_t data_size)
     srand(GetNodeId());
     std::generate_n(data.get(), data_size, []()
     {
-        return rand() % 100;
+        return rand();
     });
 
     return std::move(data);
