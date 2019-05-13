@@ -344,7 +344,8 @@ std::pair< bool, bool > is_sorted(const std::uint32_t * begin, const std::uint32
 int main(int argc, char ** argv)
 {
     auto provided = 0;
-    MPI_Init_thread(&argc, &argv, MPI_THREAD_SINGLE, &provided);
+    // MPI_Init_thread(&argc, &argv, MPI_THREAD_SINGLE, &provided);
+    MPI_Init(&argc, &argv);
 
     auto num_nodes = GetNumNodes();
     auto node_id = GetNodeId();

@@ -1,9 +1,9 @@
 #!/bin/bash
 
-#SBATCH --cpus-per-task=2
+#SBATCH --cpus-per-task=1
 #SBATCH --job-name=hpcg
-#SBATCH --nodes=2
-#SBATCH --ntasks-per-node=4
+#SBATCH --nodes=4
+#SBATCH --ntasks-per-node=1
 #SBATCH --partition=tornado
 #SBATCH --verbose
 
@@ -16,4 +16,4 @@ export OMP_PROC_BIND=CLOSE
 export OMP_WAIT_POLICY=ACTIVE
 export HWLOC_HIDE_ERRORS=1
 
-mpiexec ./ppg 30
+mpiexec ./ppg 100000

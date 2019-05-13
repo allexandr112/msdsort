@@ -1,7 +1,7 @@
-NODES := 4
+NODES := 7
 MPICC := mpiCC
 MPIXX := mpic++
-CFLAGS := -std=c++14 #-Wall -Wextra
+CFLAGS := -std=c++14 -O3 #-Wall -Wextra
 SOURCES := task.cpp
 TARGET := run.bin
 NUMBERS := 100000
@@ -19,4 +19,4 @@ compile: clean
 	${MPIXX} ${CFLAGS} ${SOURCES} -o ${TARGET}
 
 clean:
-	rm -rf *.o ${TARGET} *.txt
+	rm -rf *.o ${TARGET} *.txt ppi ppg
