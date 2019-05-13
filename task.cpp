@@ -10,6 +10,7 @@
 #include <cassert>
 #include <fstream>
 #include <string>
+#include <cstring>
 #include <chrono>
 
 #define parallel
@@ -267,9 +268,20 @@ void sort(
 )
 {
     char * filename = "sorted.txt";
-    std::ofstream file;
 
-    file.open(filename, std::ios::out | std::ios::app);
+    std::ofstream file;
+    // MPI_File file;
+
+    MPI_Status status;
+
+    if (MasterNode()) {
+        file.open(filename, std::ios::out | std::ios::app);
+        // int result = MPI_File_open(MPI_COMM_WORLD, filename, MPI_MODE_RDWR | MPI_MODE_CREATE, MPI_INFO_NULL, &file);
+        // if (result) {
+        //     assert("\nUnable to open file\n");
+        //     return;
+        // }
+    }
 
     // Build heap (rearrange array)
     // heapify(data, local_size);
@@ -281,6 +293,8 @@ void sort(
     static const std::uint32_t sorted_marker = ~0u;
 
     std::size_t num_tree_elements = 0;
+
+    Barrier();
 
     // Position where sorted part of the data starts
     for (std::size_t sorted_position = global_size; sorted_position > 0; --sorted_position)
@@ -304,15 +318,24 @@ void sort(
             else return a < b;
         }) - roots.begin();
 
-        Barrier();
 
         if (GetNodeId() == min_root_node_id && num_tree_elements < local_size) {
 
-            file << data[num_tree_elements] << std::endl;
             ++num_tree_elements;
 
         }
 
+        if (MasterNode()) {
+            file << roots[min_root_node_id] << std::endl;
+            // std::string value = std::to_string(roots.at(min_root_node_id)) + '\n';
+            // MPI_File_write(file, value.c_str(), value.length(), MPI_CHARACTER, &status);
+        }
+
+    }
+
+    if (MasterNode()) {
+        // MPI_File_close(&file);
+        file.close();
     }
 
 }
@@ -427,7 +450,8 @@ int isSorted() {
     }
 	else
 	{
-		std::cout << "Unable to open file";
+		std::cout << "\nUnable to open file\n";
+        return 0;
 	}
 
 	std::cout << "Data is sorted" << std::endl;
