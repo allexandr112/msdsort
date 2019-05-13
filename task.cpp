@@ -138,7 +138,7 @@ void radixSort(std::uint32_t * sourceArray, std::vector< unsigned int> & aux,  l
     }
 }
 
-void sort(
+void sort_1(
     std::uint32_t * data,
     int local_size,
     int global_size
@@ -260,6 +260,63 @@ void sort(
 
 }
 
+void sort(
+    std::uint32_t * data,
+    int local_size,
+    int global_size
+)
+{
+    char * filename = "ssorted.txt";
+    std::ofstream file;
+
+    file.open(filename, std::ios::out | std::ios::app);
+
+    // Build heap (rearrange array)
+    // heapify(data, local_size);
+
+    std::vector< std::uint32_t > aux(2*local_size);
+    std::fill(aux.begin(), aux.end(), 0);
+    radixSort(data, aux, 0, local_size-1, 0);
+
+    static const std::uint32_t sorted_marker = ~0u;
+
+    std::size_t num_tree_elements = 0;
+
+    // Position where sorted part of the data starts
+    for (std::size_t sorted_position = global_size; sorted_position > 0; --sorted_position)
+    {
+        // If number of tree elements is zero, the node is sorted
+        bool is_node_sorted = (num_tree_elements == local_size);
+
+        // Gather roots
+        std::vector<std::uint32_t> roots(GetNumNodes());
+
+        // If a node is sorted, send a special marker that will be ignored
+        std::uint32_t send_root = is_node_sorted ? sorted_marker : data[num_tree_elements];
+        MPI_Allgather(&send_root, 1, MPI_UNSIGNED, roots.data(), 1, MPI_UNSIGNED, MPI_COMM_WORLD);
+
+        // Find a node with max root
+        std::uint32_t min_root_node_id = std::min_element(roots.begin(), roots.end(),
+            [](std::uint32_t a, std::uint32_t b)
+        {
+            if (a == sorted_marker) return false;
+            else if (b == sorted_marker) return true;
+            else return a < b;
+        }) - roots.begin();
+
+        Barrier();
+
+        if (GetNodeId() == min_root_node_id && num_tree_elements < local_size) {
+
+            file << data[num_tree_elements] << std::endl;
+            ++num_tree_elements;
+
+        }
+
+    }
+
+}
+
 auto GenerateData(std::size_t data_size)
 {
     auto data = std::unique_ptr< std::uint32_t[] >(new std::uint32_t[data_size]);
@@ -341,6 +398,42 @@ std::pair< bool, bool > is_sorted(const std::uint32_t * begin, const std::uint32
     return { inner_result, outer_result };
 }
 
+int isSorted() {
+	std::ifstream myfile("ssorted.txt");
+	if (myfile.is_open())
+	{
+		int arrSize = 0;
+
+		long prev, cur = 0;
+	    myfile >> prev;
+		cur = prev;
+		++arrSize;
+
+		while (true)
+		{
+            if (myfile.eof())
+				break;
+
+	        myfile >> cur;
+
+            if (cur < prev) {
+                std::cout << "Unsorted at " << arrSize << std::endl;
+                return 0;
+            }
+
+			prev = cur;
+		}
+    // I should have closed the file here, but as the program was ending I was lazy	
+    }
+	else
+	{
+		std::cout << "Unable to open file";
+	}
+
+	std::cout << "Data is sorted" << std::endl;
+	return 0;
+}
+
 int main(int argc, char ** argv)
 {
     auto provided = 0;
@@ -395,27 +488,29 @@ int main(int argc, char ** argv)
         std::cout << "Execution of sort took " << elapsed << " s." << std::endl;
     }
 
-    WriteDataToFile("sorted.txt", data.get(), local_size);
+    // WriteDataToFile("sorted.txt", data.get(), local_size);
 
     // Check for sorted
-    auto result = is_sorted(data.get(), data.get() + local_size, MPI_COMM_WORLD);
-    auto inner = result.first;
-    auto outer = result.second;
-    if (inner && outer)
-    {
-        if (node_id == 0)
-        {
-            std::clog << "Data is sorted" << std::endl;
-        }
-    }
-    else
-    {
-        if (node_id == 0)
-        {
-            std::clog << "Data is unsorted" << std::endl;
-        }
-    }
+    // auto result = is_sorted(data.get(), data.get() + local_size, MPI_COMM_WORLD);
+    // auto inner = result.first;
+    // auto outer = result.second;
+    // if (inner && outer)
+    // {
+    //     if (node_id == 0)
+    //     {
+    //         std::clog << "Data is sorted" << std::endl;
+    //     }
+    // }
+    // else
+    // {
+    //     if (node_id == 0)
+    //     {
+    //         std::clog << "Data is unsorted" << std::endl;
+    //     }
+    // }
 
     MPI_Finalize();
+    isSorted();
+
     return 0;
 }

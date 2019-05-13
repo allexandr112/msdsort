@@ -1,16 +1,12 @@
-NODES := 7
+NODES := 2
 MPICC := mpiCC
 MPIXX := mpic++
 CFLAGS := -std=c++14 -O3 #-Wall -Wextra
 SOURCES := task.cpp
 TARGET := run.bin
-NUMBERS := 100000
+NUMBERS := 1000
 
 all: clean compile run
-
-check:
-	g++ ${CFLAGS} check.cpp -o check.o
-	./check.o
 
 run: 
 	mpirun -n ${NODES} ./run.bin ${NUMBERS}
