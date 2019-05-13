@@ -266,7 +266,7 @@ void sort(
     int global_size
 )
 {
-    char * filename = "ssorted.txt";
+    char * filename = "sorted.txt";
     std::ofstream file;
 
     file.open(filename, std::ios::out | std::ios::app);
@@ -399,7 +399,7 @@ std::pair< bool, bool > is_sorted(const std::uint32_t * begin, const std::uint32
 }
 
 int isSorted() {
-	std::ifstream myfile("ssorted.txt");
+	std::ifstream myfile("sorted.txt");
 	if (myfile.is_open())
 	{
 		int arrSize = 0;
@@ -488,29 +488,11 @@ int main(int argc, char ** argv)
         std::cout << "Execution of sort took " << elapsed << " s." << std::endl;
     }
 
-    // WriteDataToFile("sorted.txt", data.get(), local_size);
-
-    // Check for sorted
-    // auto result = is_sorted(data.get(), data.get() + local_size, MPI_COMM_WORLD);
-    // auto inner = result.first;
-    // auto outer = result.second;
-    // if (inner && outer)
-    // {
-    //     if (node_id == 0)
-    //     {
-    //         std::clog << "Data is sorted" << std::endl;
-    //     }
-    // }
-    // else
-    // {
-    //     if (node_id == 0)
-    //     {
-    //         std::clog << "Data is unsorted" << std::endl;
-    //     }
-    // }
+    if (MasterNode()) {
+        isSorted();
+    }
 
     MPI_Finalize();
-    isSorted();
 
     return 0;
 }
