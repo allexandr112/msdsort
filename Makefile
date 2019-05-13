@@ -19,4 +19,4 @@ compile: clean
 	${MPIXX} ${CFLAGS} ${SOURCES} -o ${TARGET}
 
 clean:
-	rm -rf *.o ${TARGET}
+	rm -rf *.o ${TARGET} *.txt
