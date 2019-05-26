@@ -408,7 +408,7 @@ auto getDataFromFile(std::string filename) {
         file >> value;
 
         // std::cout << "Node: " << node_id << ", MSD: " << getDigit(value, 0) << ", ranges[" << getDigit(value, 0) << "]:" << ranges[getDigit(value, 0)] << std::endl;
-        if (node_id == ranges[getDigit(value, 0)]) {
+        if (node_id == ranges[getDigit(value, 0)] && !file.eof() ) {
             local_data.push_back(value);
         }
 

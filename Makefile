@@ -1,4 +1,4 @@
-NODES := 2
+NODES := 3
 MPICC := mpiCC
 MPIXX := mpic++
 CFLAGS := -std=c++14 -O3 #-Wall -Wextra
