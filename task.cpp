@@ -294,44 +294,44 @@ void sort(
 
     std::size_t num_tree_elements = 0;
 
-    Barrier();
+    // Barrier();
 
-    // Position where sorted part of the data starts
-    for (std::size_t sorted_position = global_size; sorted_position > 0; --sorted_position)
-    {
-        // If number of tree elements is zero, the node is sorted
-        bool is_node_sorted = (num_tree_elements == local_size);
+    // // Position where sorted part of the data starts
+    // for (std::size_t sorted_position = global_size; sorted_position > 0; --sorted_position)
+    // {
+    //     // If number of tree elements is zero, the node is sorted
+    //     bool is_node_sorted = (num_tree_elements == local_size);
 
-        // Gather roots
-        std::vector<std::uint32_t> roots(GetNumNodes());
+    //     // Gather roots
+    //     std::vector<std::uint32_t> roots(GetNumNodes());
 
-        // If a node is sorted, send a special marker that will be ignored
-        std::uint32_t send_root = is_node_sorted ? sorted_marker : data[num_tree_elements];
-        MPI_Allgather(&send_root, 1, MPI_UNSIGNED, roots.data(), 1, MPI_UNSIGNED, MPI_COMM_WORLD);
+    //     // If a node is sorted, send a special marker that will be ignored
+    //     std::uint32_t send_root = is_node_sorted ? sorted_marker : data[num_tree_elements];
+    //     MPI_Allgather(&send_root, 1, MPI_UNSIGNED, roots.data(), 1, MPI_UNSIGNED, MPI_COMM_WORLD);
 
-        // Find a node with max root
-        std::uint32_t min_root_node_id = std::min_element(roots.begin(), roots.end(),
-            [](std::uint32_t a, std::uint32_t b)
-        {
-            if (a == sorted_marker) return false;
-            else if (b == sorted_marker) return true;
-            else return a < b;
-        }) - roots.begin();
+    //     // Find a node with max root
+    //     std::uint32_t min_root_node_id = std::min_element(roots.begin(), roots.end(),
+    //         [](std::uint32_t a, std::uint32_t b)
+    //     {
+    //         if (a == sorted_marker) return false;
+    //         else if (b == sorted_marker) return true;
+    //         else return a < b;
+    //     }) - roots.begin();
 
 
-        if (GetNodeId() == min_root_node_id && num_tree_elements < local_size) {
+    //     if (GetNodeId() == min_root_node_id && num_tree_elements < local_size) {
 
-            ++num_tree_elements;
+    //         ++num_tree_elements;
 
-        }
+    //     }
 
-        if (MasterNode()) {
-            file << roots[min_root_node_id] << std::endl;
-            // std::string value = std::to_string(roots.at(min_root_node_id)) + '\n';
-            // MPI_File_write(file, value.c_str(), value.length(), MPI_CHARACTER, &status);
-        }
+    //     if (MasterNode()) {
+    //         file << roots[min_root_node_id] << std::endl;
+    //         // std::string value = std::to_string(roots.at(min_root_node_id)) + '\n';
+    //         // MPI_File_write(file, value.c_str(), value.length(), MPI_CHARACTER, &status);
+    //     }
 
-    }
+    // }
 
     if (MasterNode()) {
         // MPI_File_close(&file);
@@ -351,6 +351,63 @@ auto GenerateData(std::size_t data_size)
     });
 
     return std::move(data);
+}
+
+void GenerateDataFile(std::string filename, std::size_t data_size) {
+    std::ofstream file;
+
+    srand(1234);
+
+    file.open(filename);
+
+    for (auto i = 0u; i < data_size; ++i) {
+        file << rand() << std::endl;
+    }
+
+    file.close();
+}
+
+auto getDataFromFile(std::string filename) {
+    std::vector< std::size_t > ranges(256);
+
+    std::vector< std::uint32_t > local_data;
+
+    auto num_nodes = GetNumNodes();
+    std::size_t delimitor = 255 / num_nodes;
+
+
+    for (auto i = 0u; i < 256; ++i) {
+        std::size_t value = i / delimitor;
+        ranges[i] = (value > num_nodes - 1 ) ? num_nodes - 1 : value;
+    }
+
+    std::ifstream file;
+    file.open(filename);
+
+    // MPI_File file;
+    // if ( !MPI_File_open(MPI_COMM_WORLD, filename.c_str(), MPI_MODE_RDONLY, MPI_INFO_NULL, &file) ) {
+    //     std::cerr << "Can't open file from: " << GetNodeId() << std::endl;
+
+    //     return local_data;
+    // }
+
+    std::size_t value;
+
+    while (true) {
+        if (file.eof()) {
+            break;
+        }
+
+        file >> value;
+        if (GetNodeId() == ranges[getDigit(value, 0)]) {
+            local_data.push_back(value);
+        }
+
+    }
+
+    file.close();
+
+    return local_data;
 }
 
 void WriteDataToFile(std::string const& filename, std::uint32_t * data, std::size_t count)
@@ -383,6 +440,24 @@ void WriteDataToFile(std::string const& filename, std::uint32_t * data, std::siz
 
         Barrier();
     }
+}
+
+void WriteDataToFileSequental(std::string filename, std::uint32_t * data, std::size_t data_size) {
+    std::ofstream file;
+    file.open(filename);
+
+    auto node_id = GetNodeId();
+
+    for (auto i = 0u; i < GetNumNodes(); ++i) {
+        Barrier();
+        if (node_id == i) {
+            for (auto j = 0; j < data_size; ++j) {
+                file << data[j] << std::endl;
+            }
+        }
+    }
+
+    file.close();
 }
 
 std::pair< bool, bool > is_sorted(const std::uint32_t * begin, const std::uint32_t * end, const MPI_Comm comm)
@@ -460,6 +535,15 @@ int isSorted() {
 
 int main(int argc, char ** argv)
 {
+    if (argc != 2)
+    {
+        std::cerr << "Please, read README before using" << std::endl;
+        return 0;
+    }
+    auto data_size = atoi(argv[1]);
+    
+    GenerateDataFile("unsorted.txt", data_size);
+
     auto provided = 0;
     // MPI_Init_thread(&argc, &argv, MPI_THREAD_SINGLE, &provided);
     MPI_Init(&argc, &argv);
@@ -482,25 +566,29 @@ int main(int argc, char ** argv)
     // Get total size from cmd line
     auto global_size = atoi(argv[1]);
 
+    std::vector< uint32_t > local_data_vector = getDataFromFile("unsorted.txt");
+    const std::size_t local_size = local_data_vector.size();
+    std::uint32_t * data = local_data_vector.data();
+
     // Calculate data size per node
-    const std::size_t local_size = (global_size / num_nodes) + ((node_id != (num_nodes - 1)) ? 0 : (global_size % num_nodes));
+    // const std::size_t local_size = (global_size / num_nodes) + ((node_id != (num_nodes - 1)) ? 0 : (global_size % num_nodes));
     Barrier();
 
     MPI_Allgather(&local_size, sizeof(std::size_t), MPI_CHAR, g_node_counts.data(), sizeof(std::size_t), MPI_CHAR, MPI_COMM_WORLD);
 
     // Generate data
-    auto data = GenerateData(local_size);
+    // auto data = GenerateData(local_size);
 
     // Issue a barrier
     Barrier();
 
-    WriteDataToFile("unsorted.txt", data.get(), local_size);
+    // WriteDataToFile("unsorted.txt", data.get(), local_size);
 
     std::chrono::high_resolution_clock::time_point start_time =
         std::chrono::high_resolution_clock::now();
 
     // Sort
-    sort(data.get(), local_size, global_size);
+    sort(data, local_size, global_size);
 
     // Issue a barrier
     Barrier();
@@ -511,6 +599,8 @@ int main(int argc, char ** argv)
         double elapsed = std::chrono::duration_cast<std::chrono::duration<double>>(end - start_time).count();
         std::cout << "Execution of sort took " << elapsed << " s." << std::endl;
     }
+
+    WriteDataToFileSequental("sorted.txt", data, local_size);
 
     if (MasterNode()) {
         isSorted();
