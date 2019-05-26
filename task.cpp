@@ -355,13 +355,14 @@ auto GenerateData(std::size_t data_size)
 
 void GenerateDataFile(std::string filename, std::size_t data_size) {
     std::ofstream file;
+    std::size_t rand_max = 4294967295;
 
-    srand(1234);
+    // srand(1234);
 
     file.open(filename);
 
     for (auto i = 0u; i < data_size; ++i) {
-        file << rand() << std::endl;
+        file << rand() % rand_max << std::endl; // 4294967295 is max for std::uint_32t
     }
 
     file.close();
@@ -369,6 +370,11 @@ void GenerateDataFile(std::string filename, std::size_t data_size) {
 
 auto getDataFromFile(std::string filename) {
     std::vector< std::size_t > ranges(256);
+
+    std::ofstream outfile;
+
+    std::string outfilename =  "node_output_" + std::to_string(GetNodeId()) + ".txt";
+    outfile.open(outfilename);
 
     std::vector< std::uint32_t > local_data;
 
@@ -391,7 +397,8 @@ auto getDataFromFile(std::string filename) {
     //     return local_data;
     // }
 
-    std::size_t value;
+    auto node_id = GetNodeId();
+    std::uint32_t value;
 
     while (true) {
         if (file.eof()) {
@@ -399,13 +406,26 @@ auto getDataFromFile(std::string filename) {
         }
 
         file >> value;
-        if (GetNodeId() == ranges[getDigit(value, 0)]) {
+
+        // std::cout << "Node: " << node_id << ", MSD: " << getDigit(value, 0) << ", ranges[" << getDigit(value, 0) << "]:" << ranges[getDigit(value, 0)] << std::endl;
+        if (node_id == ranges[getDigit(value, 0)]) {
             local_data.push_back(value);
         }
 
     }
 
     file.close();
+
+    for (auto i = 0u; i < ranges.size(); ++i) {
+        outfile << "Ranges[" << i << "]: " << ranges[i] << std::endl;
+    }
+    for (auto i = 0u; i < local_data.size(); ++i) {
+        outfile << "MSD[" << i << "]: " << getDigit(local_data[i], 0) << std::endl; 
+    }
+
+    std::cout << "Node: " << GetNodeId() << " got " << local_data.size() << " values" << std::endl;
+
+    outfile.close();
 
     return local_data;
 }
@@ -440,24 +460,6 @@ void WriteDataToFile(std::string const& filename, std::uint32_t * data, std::siz
 
         Barrier();
     }
-}
-
-void WriteDataToFileSequental(std::string filename, std::uint32_t * data, std::size_t data_size) {
-    std::ofstream file;
-    file.open(filename);
-
-    auto node_id = GetNodeId();
-
-    for (auto i = 0u; i < GetNumNodes(); ++i) {
-        Barrier();
-        if (node_id == i) {
-            for (auto j = 0; j < data_size; ++j) {
-                file << data[j] << std::endl;
-            }
-        }
-    }
-
-    file.close();
 }
 
 std::pair< bool, bool > is_sorted(const std::uint32_t * begin, const std::uint32_t * end, const MPI_Comm comm)
@@ -500,9 +502,9 @@ int isSorted() {
 	std::ifstream myfile("sorted.txt");
 	if (myfile.is_open())
 	{
-		int arrSize = 0;
+		unsigned long long int arrSize = 0;
 
-		long prev, cur = 0;
+		std::uint32_t prev, cur = 0;
 	    myfile >> prev;
 		cur = prev;
 		++arrSize;
@@ -600,7 +602,7 @@ int main(int argc, char ** argv)
         std::cout << "Execution of sort took " << elapsed << " s." << std::endl;
     }
 
-    WriteDataToFileSequental("sorted.txt", data, local_size);
+    WriteDataToFile("sorted.txt", data, local_size);
 
     if (MasterNode()) {
         isSorted();
