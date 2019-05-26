@@ -452,6 +452,7 @@ void WriteDataToFile(std::string const& filename, std::uint32_t * data, std::siz
     {
         if (GetNodeId() == i)
         {
+            std::cout << "Node: " << GetNodeId() << " started writing values to file" << std::endl;
             for (auto j = 0u; j < count; ++j)
             {
                 file << data[j] << std::endl;
@@ -460,6 +461,43 @@ void WriteDataToFile(std::string const& filename, std::uint32_t * data, std::siz
 
         Barrier();
     }
+}
+
+void WriteToFileMPI(std::string const& filename, std::uint32_t * data, std::size_t count) {
+    MPI_File file;
+
+    MPI_File_open(MPI_COMM_WORLD, filename.c_str(), MPI_MODE_RDWR, MPI_INFO_NULL, &file);
+
+    // if (MasterNode()) {
+    //     if (!MPI_File_open(MPI_COMM_WORLD, filename.c_str(), MPI_MODE_RDWR, MPI_INFO_NULL, &file)) {
+    //         assert("Unable to open file");
+    //         return;
+    //     }
+    // } else {
+    //     if (!MPI_File_open(MPI_COMM_WORLD, filename.c_str(), MPI_MODE_APPEND  | MPI_MODE_RDWR, MPI_INFO_NULL, &file)) {
+    //         assert("Unable to open file");
+    //         return;
+    //     }
+    // }
+
+    Barrier();
+    std::cout << "Node " << GetNodeId() << " opened file" << std::endl;
+    Barrier();
+
+    MPI_Status status;
+
+    for (std::size_t i = 0u; i < GetNumNodes(); ++i) {
+        Barrier();
+        if (GetNodeId() == i) {
+            for (auto j = 0; j < count; ++j) {
+                std::string value = std::to_string(data[j]) + '\n';
+                MPI_File_write_shared(file, value.c_str(), value.length(), MPI_CHAR, &status);
+            }
+        }
+        Barrier();
+    }
+
+    MPI_File_close(&file);
 }
 
 std::pair< bool, bool > is_sorted(const std::uint32_t * begin, const std::uint32_t * end, const MPI_Comm comm)
@@ -602,7 +640,8 @@ int main(int argc, char ** argv)
         std::cout << "Execution of sort took " << elapsed << " s." << std::endl;
     }
 
-    WriteDataToFile("sorted.txt", data, local_size);
+    // WriteDataToFile("sorted.txt", data, local_size);
+    WriteToFileMPI("sorted.txt", data, local_size);
 
     if (MasterNode()) {
         isSorted();
